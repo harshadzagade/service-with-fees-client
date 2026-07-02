@@ -3,7 +3,7 @@ import { api } from '../utils/api';
 import { 
   ClipboardList, Search, FileText, CheckCircle2, User, Landmark, 
   IndianRupee, Download, Loader2, MessageSquare, AlertCircle, 
-  Settings, BookOpen, Plus, Trash2, Edit3, Shield, Key, XCircle, Eye, X, RefreshCw
+  Settings, BookOpen, Plus, Trash2, Edit3, Shield, Key, XCircle, Eye, X, RefreshCw, Printer
 } from 'lucide-react';
 
 const renderLogDetails = (details) => {
@@ -409,6 +409,119 @@ export default function AdminDashboard({ user, onLoginSuccess }) {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  // Open formatted browser print window for single application receipt details
+  const handlePrintApp = (app) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Pop-up blocker is preventing opening the print window. Please allow popups.');
+      return;
+    }
+
+    const itemsHtml = Object.entries(app.submittedData || {})
+      .map(([key, val]) => {
+        const isFile = typeof val === 'string' && val.includes('/uploads/');
+        return `
+          <tr style="border-bottom: 1px dashed #e5e7eb;">
+            <td style="padding: 8px; font-weight: bold; text-transform: capitalize; color: #4b5563; width: 40%;">${key.replace(/_/g, ' ')}</td>
+            <td style="padding: 8px; color: #111827;">${isFile ? '[Document Uploaded]' : (Array.isArray(val) ? val.join(', ') : val)}</td>
+          </tr>
+        `;
+      })
+      .join('');
+
+    const htmlContent = `
+      <html>
+        <head>
+          <title>MET Registrar Services - Application Receipt Details</title>
+          <style>
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #111827; padding: 20px; line-height: 1.5; margin: 0; }
+            .header { border-bottom: 2px solid #0B3384; padding-bottom: 15px; margin-bottom: 20px; }
+            .header h1 { color: #0B3384; margin: 0 0 5px 0; font-size: 24px; }
+            .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+            .section { border: 1px solid #e5e7eb; border-radius: 6px; padding: 15px; background-color: #f9fafb; }
+            .section h2 { font-size: 14px; margin-top: 0; color: #0B3384; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+            th, td { text-align: left; padding: 8px; }
+            .total-table td { border-bottom: 1px solid #e5e7eb; }
+            .total-row { font-weight: bold; font-size: 14px; color: #0B3384; background-color: #f3f4f6; }
+            .badge { display: inline-block; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
+            .badge-success { background-color: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+            .badge-pending { background-color: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+            @media print {
+              body { padding: 0; }
+              button { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0B3384; padding-bottom: 15px; margin-bottom: 20px;">
+            <div>
+              <h1 style="color: #0B3384; margin: 0 0 5px 0; font-size: 24px;">MET Registrar Services</h1>
+              <span style="font-size: 12px; color: #6b7280;">Application Details Report</span>
+            </div>
+            <div>
+              <span class="badge ${app.status === 'FULFILLED' ? 'badge-success' : 'badge-pending'}">${app.status === 'SUCCESS' ? 'PAID' : app.status}</span>
+            </div>
+          </div>
+
+          <div class="grid">
+            <div class="section">
+              <h2>Student Profile</h2>
+              <table>
+                <tr><td style="font-weight: bold; width: 35%;">Name:</td><td>${app.studentName}</td></tr>
+                <tr><td style="font-weight: bold;">Email:</td><td>${app.studentEmail}</td></tr>
+                <tr><td style="font-weight: bold;">Phone:</td><td>${app.studentPhone}</td></tr>
+                <tr><td style="font-weight: bold;">Roll No:</td><td>${app.studentRollNo}</td></tr>
+                <tr><td style="font-weight: bold;">Programme:</td><td>${app.programme.name}</td></tr>
+              </table>
+            </div>
+            
+            <div class="section">
+              <h2>Transaction Details</h2>
+              <table>
+                <tr><td style="font-weight: bold; width: 35%;">Transaction ID:</td><td style="font-family: monospace;">${app.payuTxnId}</td></tr>
+                <tr><td style="font-weight: bold;">Date:</td><td>${new Date(app.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td></tr>
+                <tr><td style="font-weight: bold;">Service Requested:</td><td>${app.service.name}</td></tr>
+                <tr><td style="font-weight: bold;">Status:</td><td>${app.status === 'SUCCESS' ? 'PAID / SUCCESS' : app.status}</td></tr>
+              </table>
+            </div>
+          </div>
+
+          <div class="section" style="margin-bottom: 20px;">
+            <h2>Submitted Form Responses</h2>
+            <table>
+              ${itemsHtml || '<tr><td colspan="2" style="color: #9ca3af; text-align: center;">No dynamic fields submitted.</td></tr>'}
+            </table>
+          </div>
+
+          <div class="section" style="max-width: 400px; margin-left: auto;">
+            <h2>Tax & Pricing Splits</h2>
+            <table class="total-table">
+              <tr><td>Base Fee Amount:</td><td style="text-align: right;">₹${Number(app.baseAmount).toFixed(2)}</td></tr>
+              <tr><td>CGST Split (50%):</td><td style="text-align: right;">₹${Number(app.cgstAmount).toFixed(2)}</td></tr>
+              <tr><td>SGST Split (50%):</td><td style="text-align: right;">₹${Number(app.sgstAmount).toFixed(2)}</td></tr>
+              <tr><td>Round Off Difference:</td><td style="text-align: right;">${Number(app.roundOff) >= 0 ? '+' : ''}₹${Number(app.roundOff).toFixed(2)}</td></tr>
+              <tr class="total-row"><td>Grand Total Paid:</td><td style="text-align: right;">₹${Number(app.totalAmount).toFixed(0)}</td></tr>
+            </table>
+          </div>
+
+          <div style="margin-top: 30px; text-align: center; font-size: 11px; color: #9ca3af; border-top: 1px solid #e5e7eb; padding-top: 10px;">
+            This is an official document generated by the MET Registrar Administrative Portal.
+          </div>
+
+          <script>
+            window.onload = function() {
+              window.print();
+            }
+          </script>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
   };
 
   // --- CRUD ACTIONS: INSTITUTES ---
@@ -1223,9 +1336,18 @@ export default function AdminDashboard({ user, onLoginSuccess }) {
                 <div className="card glass">
                   <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <h3>Application Details</h3>
-                    <span className={`badge ${selectedApp.status === 'FULFILLED' ? 'badge-success' : 'badge-pending'}`}>
-                      {selectedApp.status === 'SUCCESS' ? 'PAID' : selectedApp.status}
-                    </span>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      <button 
+                        className="btn btn-secondary" 
+                        onClick={() => handlePrintApp(selectedApp)}
+                        style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', height: '28px' }}
+                      >
+                        <Printer size={12} /> Print
+                      </button>
+                      <span className={`badge ${selectedApp.status === 'FULFILLED' ? 'badge-success' : 'badge-pending'}`}>
+                        {selectedApp.status === 'SUCCESS' ? 'PAID' : selectedApp.status}
+                      </span>
+                    </div>
                   </div>
                   
                   <div className="card-body" style={{ fontSize: '0.85rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
