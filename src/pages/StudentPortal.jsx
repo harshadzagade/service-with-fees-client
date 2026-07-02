@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../utils/api';
 import { calculateFee } from '../utils/feeCalculator';
-import { Landmark, FileText, CheckCircle2, AlertCircle, Plus, ArrowRight, Loader2, UploadCloud, X, User, CreditCard } from 'lucide-react';
+import { Landmark, FileText, CheckCircle2, AlertCircle, Plus, ArrowRight, Loader2, UploadCloud, X, User, CreditCard, Download } from 'lucide-react';
 
 export default function StudentPortal({ activeInstituteId, setActiveInstituteId, onCheckoutSuccess, isVerificationAgency = false }) {
   const [institutes, setInstitutes] = useState([]);
@@ -881,7 +881,7 @@ export default function StudentPortal({ activeInstituteId, setActiveInstituteId,
                           {field.type === 'file' && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                               {uploadedFiles[field.name] ? (
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'var(--success-bg)', color: 'var(--success)', padding: '0.5rem', borderRadius: 'var(--radius-sm)', fontSize: '0.85rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyBetween: 'space-between', backgroundColor: 'var(--success-bg)', color: 'var(--success)', padding: '0.5rem', borderRadius: 'var(--radius-sm)', fontSize: '0.85rem' }}>
                                   <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '280px' }}>
                                     ✔ Attached: {uploadedFiles[field.name].fileName}
                                   </span>
@@ -955,7 +955,7 @@ export default function StudentPortal({ activeInstituteId, setActiveInstituteId,
                           <label className="form-label">Upload Signed Self Declaration (PDF/JPG) <span className="required">*</span></label>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                             {uploadedFiles['self_declaration_upload'] ? (
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'var(--success-bg)', color: 'var(--success)', padding: '0.5rem', borderRadius: 'var(--radius-sm)', fontSize: '0.85rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyBetween: 'space-between', backgroundColor: 'var(--success-bg)', color: 'var(--success)', padding: '0.5rem', borderRadius: 'var(--radius-sm)', fontSize: '0.85rem' }}>
                                 <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '280px' }}>
                                   ✔ Attached: {uploadedFiles['self_declaration_upload'].fileName}
                                 </span>
@@ -1004,7 +1004,7 @@ export default function StudentPortal({ activeInstituteId, setActiveInstituteId,
                           <label className="form-label">Upload Copy of Police FIR (First Information Report) <span className="required">*</span></label>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                             {uploadedFiles['fir_upload'] ? (
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'var(--success-bg)', color: 'var(--success)', padding: '0.5rem', borderRadius: 'var(--radius-sm)', fontSize: '0.85rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyBetween: 'space-between', backgroundColor: 'var(--success-bg)', color: 'var(--success)', padding: '0.5rem', borderRadius: 'var(--radius-sm)', fontSize: '0.85rem' }}>
                                 <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '280px' }}>
                                   ✔ Attached: {uploadedFiles['fir_upload'].fileName}
                                 </span>
