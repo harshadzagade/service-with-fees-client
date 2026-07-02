@@ -242,6 +242,20 @@ export default function StudentPortal({ activeInstituteId, setActiveInstituteId,
         return;
       }
 
+      // Validate duplicate marksheet/diploma uploads (Self-Declaration & FIR)
+      const isDuplicate = selectedService.name.toLowerCase().includes('duplicate mark sheet') || 
+                          selectedService.name.toLowerCase().includes('duplicate diploma');
+      if (isDuplicate) {
+        if (!uploadedFiles['self_declaration_upload']) {
+          setErrorMsg('Please upload the signed Student Self Declaration form.');
+          return;
+        }
+        if (!uploadedFiles['fir_upload']) {
+          setErrorMsg('Please upload a copy of the police FIR report.');
+          return;
+        }
+      }
+
       // Dynamic fields validation
       for (const field of selectedService.formSchema) {
         const val = formValues[field.name];
@@ -913,6 +927,128 @@ export default function StudentPortal({ activeInstituteId, setActiveInstituteId,
                         </div>
                       );
                     })}
+
+                    {/* Extra Requirements for Duplicate Documents (Lost Marksheet / Diploma) */}
+                    {(selectedService.name.toLowerCase().includes('duplicate mark sheet') || 
+                      selectedService.name.toLowerCase().includes('duplicate diploma')) && (
+                      <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px dashed var(--border)' }}>
+                        <h4 style={{ fontSize: '0.9rem', color: 'var(--secondary)', marginBottom: '0.75rem' }}>
+                          Duplicate Document Requirements (Lost/Stolen)
+                        </h4>
+                        
+                        {/* Download Template Alert */}
+                        <div style={{ backgroundColor: 'var(--primary-light)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', marginBottom: '1rem', fontSize: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.25rem', border: '1px solid rgba(11, 51, 132, 0.15)' }}>
+                          <strong style={{ color: 'var(--secondary)' }}>💡 Self Declaration Template Required:</strong>
+                          <span style={{ color: 'var(--text-muted)' }}>Please download, print, fill, sign, and upload the Student Self Declaration form:</span>
+                          <a 
+                            href="/templates/self_declaration_duplicate_marksheet.pdf" 
+                            download 
+                            className="btn btn-secondary" 
+                            style={{ alignSelf: 'flex-start', padding: '0.35rem 0.6rem', fontSize: '0.75rem', marginTop: '0.25rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                          >
+                            <Download size={12} /> Download Self Declaration Template
+                          </a>
+                        </div>
+
+                        {/* 1. Self-Declaration Upload */}
+                        <div className="form-group" style={{ marginBottom: '1rem' }}>
+                          <label className="form-label">Upload Signed Self Declaration (PDF/JPG) <span className="required">*</span></label>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            {uploadedFiles['self_declaration_upload'] ? (
+                              <div style={{ display: 'flex', alignItems: 'center', justifyBetween: 'space-between', backgroundColor: 'var(--success-bg)', color: 'var(--success)', padding: '0.5rem', borderRadius: 'var(--radius-sm)', fontSize: '0.85rem' }}>
+                                <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '280px' }}>
+                                  ✔ Attached: {uploadedFiles['self_declaration_upload'].fileName}
+                                </span>
+                                <button 
+                                  type="button" 
+                                  className="btn btn-secondary" 
+                                  style={{ padding: '0.1rem 0.4rem', fontSize: '0.75rem', marginLeft: 'auto' }}
+                                  onClick={() => {
+                                    setUploadedFiles((prev) => {
+                                      const c = { ...prev };
+                                      delete c['self_declaration_upload'];
+                                      return c;
+                                    });
+                                    handleInputChange('self_declaration_upload', '');
+                                  }}
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            ) : (
+                              <div style={{ position: 'relative', border: '2px dashed var(--border)', borderRadius: 'var(--radius-sm)', padding: '1.25rem', textAlign: 'center' }}>
+                                {uploadingField === 'self_declaration_upload' ? (
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontSize: '0.85rem' }}>
+                                    <Loader2 className="spinner spinner-dark" /> Uploading to secure S3 storage...
+                                  </div>
+                                ) : (
+                                  <>
+                                    <UploadCloud size={24} style={{ color: 'var(--text-light)', marginBottom: '0.25rem' }} />
+                                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Click to select and upload Self-Declaration</p>
+                                    <input 
+                                      type="file" 
+                                      accept=".pdf,.jpg,.jpeg,.png"
+                                      required
+                                      onChange={(e) => handleFileUpload('self_declaration_upload', e)}
+                                      style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }}
+                                    />
+                                  </>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* 2. FIR Copy Upload */}
+                        <div className="form-group">
+                          <label className="form-label">Upload Copy of Police FIR (First Information Report) <span className="required">*</span></label>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            {uploadedFiles['fir_upload'] ? (
+                              <div style={{ display: 'flex', alignItems: 'center', justifyBetween: 'space-between', backgroundColor: 'var(--success-bg)', color: 'var(--success)', padding: '0.5rem', borderRadius: 'var(--radius-sm)', fontSize: '0.85rem' }}>
+                                <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '280px' }}>
+                                  ✔ Attached: {uploadedFiles['fir_upload'].fileName}
+                                </span>
+                                <button 
+                                  type="button" 
+                                  className="btn btn-secondary" 
+                                  style={{ padding: '0.1rem 0.4rem', fontSize: '0.75rem', marginLeft: 'auto' }}
+                                  onClick={() => {
+                                    setUploadedFiles((prev) => {
+                                      const c = { ...prev };
+                                      delete c['fir_upload'];
+                                      return c;
+                                    });
+                                    handleInputChange('fir_upload', '');
+                                  }}
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            ) : (
+                              <div style={{ position: 'relative', border: '2px dashed var(--border)', borderRadius: 'var(--radius-sm)', padding: '1.25rem', textAlign: 'center' }}>
+                                {uploadingField === 'fir_upload' ? (
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontSize: '0.85rem' }}>
+                                    <Loader2 className="spinner spinner-dark" /> Uploading to secure S3 storage...
+                                  </div>
+                                ) : (
+                                  <>
+                                    <UploadCloud size={24} style={{ color: 'var(--text-light)', marginBottom: '0.25rem' }} />
+                                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Click to select and upload police FIR copy</p>
+                                    <input 
+                                      type="file" 
+                                      accept=".pdf,.jpg,.jpeg,.png"
+                                      required
+                                      onChange={(e) => handleFileUpload('fir_upload', e)}
+                                      style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }}
+                                    />
+                                  </>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </>
               )}
