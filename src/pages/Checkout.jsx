@@ -1,5 +1,5 @@
 import React from 'react';
-import { CreditCard, ShieldCheck, ArrowLeft, Landmark, ShoppingBag, Coins } from 'lucide-react';
+import { CreditCard, ShieldCheck, ArrowLeft, Landmark, ShoppingBag, Coins, ExternalLink } from 'lucide-react';
 
 export default function Checkout({ payuParams, totalAmount, setPage }) {
   if (!payuParams) {
@@ -13,12 +13,16 @@ export default function Checkout({ payuParams, totalAmount, setPage }) {
     );
   }
 
-  const { key, txnid, amount, productinfo, firstname, email, hash, surl, furl } = payuParams;
+  const { key, txnid, amount, productinfo, firstname, email, phone, hash, surl, furl } = payuParams;
+
+  // Determine whether this is a mock sandbox environment or a live merchant setup
+  const isMock = key === 'DEFAULT_SANDBOX_KEY' || (typeof key === 'string' && (key.startsWith('MOCK_KEY_') || key.includes('MOCK') || key.includes('SANDBOX')));
+  const payuUrl = isMock ? 'https://test.payu.in/_payment' : 'https://secure.payu.in/_payment';
 
   return (
-    <div className="checkout-simulation-page" style={{ maxWidth: '650px', margin: '0 auto' }}>
+    <div className="checkout-page" style={{ maxWidth: '650px', margin: '0 auto' }}>
       <div className="card glass" style={{ border: '2px solid var(--secondary)', boxShadow: 'var(--shadow-lg)' }}>
-        {/* Banner Alert representing simulated gateway */}
+        {/* Gateway Banner */}
         <div style={{
           backgroundColor: 'var(--secondary)',
           color: 'white',
@@ -31,103 +35,137 @@ export default function Checkout({ payuParams, totalAmount, setPage }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <ShieldCheck size={20} />
             <span style={{ fontWeight: 700, fontFamily: 'var(--font-display)', letterSpacing: '0.5px' }}>
-              PayU Secure Sandbox Gateway
+              {isMock ? 'PayU Sandbox Payment Gateway' : 'PayU Secure Payment Gateway'}
             </span>
           </div>
-          <span style={{ fontSize: '0.75rem', opacity: 0.85, textTransform: 'uppercase' }}>Simulation Mode</span>
+          <span style={{ fontSize: '0.75rem', opacity: 0.85, textTransform: 'uppercase' }}>
+            {isMock ? 'Sandbox Mode' : 'Live Mode'}
+          </span>
         </div>
 
         <div className="card-body">
           {/* Order Details box */}
-          <div style={{ backgroundColor: 'var(--bg)', padding: '1rem', borderRadius: 'var(--radius-sm)', marginBottom: '1.5rem', border: '1px solid var(--border)' }}>
-            <h4 style={{ fontSize: '0.95rem', marginBottom: '0.75rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem', color: 'var(--primary)' }}>
-              Billing Summary
+          <div style={{ backgroundColor: 'var(--bg)', padding: '1.25rem', borderRadius: 'var(--radius-sm)', marginBottom: '1.5rem', border: '1px solid var(--border)' }}>
+            <h4 style={{ fontSize: '0.95rem', marginBottom: '0.75rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem', color: 'var(--secondary)', fontWeight: 600 }}>
+              Billing Summary & Invoice
             </h4>
             
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem 1rem', fontSize: '0.85rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '0.6rem 1rem', fontSize: '0.85rem' }}>
               <div><strong>Payable Amount:</strong></div>
-              <div style={{ textAlign: 'right', fontWeight: 800, color: 'var(--primary)' }}>Rs. {amount}</div>
+              <div style={{ textAlign: 'right', fontWeight: 800, color: 'var(--primary)', fontSize: '1rem' }}>₹{amount}</div>
               
               <div><strong>Transaction ID:</strong></div>
-              <div style={{ textAlign: 'right', fontFamily: 'monospace' }}>{txnid}</div>
+              <div style={{ textAlign: 'right', fontFamily: 'monospace', color: 'var(--text-main)' }}>{txnid}</div>
               
               <div><strong>Applicant Name:</strong></div>
-              <div style={{ textAlign: 'right' }}>{firstname}</div>
+              <div style={{ textAlign: 'right', color: 'var(--text-main)' }}>{firstname}</div>
               
               <div><strong>Applicant Email:</strong></div>
-              <div style={{ textAlign: 'right' }}>{email}</div>
+              <div style={{ textAlign: 'right', color: 'var(--text-main)' }}>{email}</div>
 
-              <div><strong>Services:</strong></div>
-              <div style={{ textAlign: 'right', wordBreak: 'break-all', fontSize: '0.8rem', color: 'var(--text-muted)' }}>{productinfo}</div>
+              {phone && (
+                <>
+                  <div><strong>Contact Number:</strong></div>
+                  <div style={{ textAlign: 'right', color: 'var(--text-main)' }}>{phone}</div>
+                </>
+              )}
+
+              <div><strong>Services Applied:</strong></div>
+              <div style={{ textAlign: 'right', fontSize: '0.8rem', color: 'var(--text-muted)' }}>{productinfo}</div>
               
-              <div><strong>Merchant Key:</strong></div>
-              <div style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: '0.75rem' }}>{key}</div>
+              <div><strong>Merchant Identifier:</strong></div>
+              <div style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: '0.75rem', color: 'var(--text-muted)' }}>{key}</div>
             </div>
           </div>
 
-          <h3 style={{ fontSize: '1.15rem', marginBottom: '1rem', color: 'var(--text-main)', textAlign: 'center' }}>
-            Select Payment Action to Simulate
-          </h3>
+          {/* 1. REAL GATEWAY REDIRECT FORM */}
+          <form action={payuUrl} method="POST" style={{ marginBottom: '1.5rem' }}>
+            <input type="hidden" name="key" value={key} />
+            <input type="hidden" name="txnid" value={txnid} />
+            <input type="hidden" name="amount" value={amount} />
+            <input type="hidden" name="productinfo" value={productinfo} />
+            <input type="hidden" name="firstname" value={firstname} />
+            <input type="hidden" name="email" value={email} />
+            <input type="hidden" name="phone" value={phone || ''} />
+            <input type="hidden" name="surl" value={surl} />
+            <input type="hidden" name="furl" value={furl} />
+            <input type="hidden" name="hash" value={hash} />
+            <input type="hidden" name="service_provider" value="payu_paisa" />
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-            {/* Success Simulator form */}
-            <form action={surl} method="POST">
-              {/* PayU Postback inputs */}
-              <input type="hidden" name="key" value={key} />
-              <input type="hidden" name="txnid" value={txnid} />
-              <input type="hidden" name="amount" value={amount} />
-              <input type="hidden" name="productinfo" value={productinfo} />
-              <input type="hidden" name="firstname" value={firstname} />
-              <input type="hidden" name="email" value={email} />
-              <input type="hidden" name="status" value="success" />
-              <input type="hidden" name="hash" value={hash} />
-              <input type="hidden" name="udf1" value="" />
-              <input type="hidden" name="udf2" value="" />
-              <input type="hidden" name="udf3" value="" />
-              <input type="hidden" name="udf4" value="" />
-              <input type="hidden" name="udf5" value="" />
+            <button 
+              type="submit" 
+              className="btn btn-primary" 
+              style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', padding: '1rem', height: '48px', fontSize: '1rem', fontWeight: 700 }}
+            >
+              <CreditCard size={18} /> Proceed to Secure Payment
+            </button>
+            <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', marginTop: '0.4rem' }}>
+              🛡 Redirecting to PCI-DSS compliant secure PayU portal.
+            </span>
+          </form>
 
-              <button 
-                type="submit" 
-                className="btn btn-primary" 
-                style={{ width: '100%', display: 'flex', flexDirection: 'column', padding: '1.25rem 1rem', height: 'auto', gap: '0.25rem', backgroundColor: 'var(--success)' }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700, fontSize: '1rem' }}>
-                  <ShieldCheck size={18} /> Pay Successfully
-                </div>
-                <span style={{ fontSize: '0.7rem', fontWeight: 400, opacity: 0.9 }}>Simulates completed txn webhook callback</span>
-              </button>
-            </form>
-
-            {/* Failure Simulator form */}
-            <form action={furl} method="POST">
-              <input type="hidden" name="key" value={key} />
-              <input type="hidden" name="txnid" value={txnid} />
-              <input type="hidden" name="amount" value={amount} />
-              <input type="hidden" name="productinfo" value={productinfo} />
-              <input type="hidden" name="firstname" value={firstname} />
-              <input type="hidden" name="email" value={email} />
-              <input type="hidden" name="status" value="failure" />
-              <input type="hidden" name="hash" value={hash} />
+          {/* 2. OPTIONAL DEVELOPER SIMULATOR BUTTONS (Only visible for Mock Keys) */}
+          {isMock && (
+            <div style={{ borderTop: '1px dashed var(--border)', paddingTop: '1.25rem', marginTop: '1rem' }}>
+              <h5 style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.75rem', fontWeight: 600 }}>
+                🛠 Sandbox / Developer Simulator Actions
+              </h5>
               
-              <button 
-                type="submit" 
-                className="btn btn-danger" 
-                style={{ width: '100%', display: 'flex', flexDirection: 'column', padding: '1.25rem 1rem', height: 'auto', gap: '0.25rem' }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700, fontSize: '1rem' }}>
-                  <Coins size={18} /> Cancel / Fail Payment
-                </div>
-                <span style={{ fontSize: '0.7rem', fontWeight: 400, opacity: 0.9 }}>Simulates transaction failure callback</span>
-              </button>
-            </form>
-          </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <form action={surl} method="POST">
+                  <input type="hidden" name="key" value={key} />
+                  <input type="hidden" name="txnid" value={txnid} />
+                  <input type="hidden" name="amount" value={amount} />
+                  <input type="hidden" name="productinfo" value={productinfo} />
+                  <input type="hidden" name="firstname" value={firstname} />
+                  <input type="hidden" name="email" value={email} />
+                  <input type="hidden" name="phone" value={phone || ''} />
+                  <input type="hidden" name="status" value="success" />
+                  <input type="hidden" name="hash" value={hash} />
+                  
+                  <button 
+                    type="submit" 
+                    className="btn btn-secondary" 
+                    style={{ width: '100%', display: 'flex', flexDirection: 'column', padding: '0.75rem', height: 'auto', gap: '0.15rem', backgroundColor: 'var(--success-bg)', color: 'var(--success)', borderColor: 'rgba(0,0,0,0.1)' }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: 600, fontSize: '0.85rem' }}>
+                      <ShieldCheck size={14} /> Simulate Success
+                    </div>
+                    <span style={{ fontSize: '0.65rem', opacity: 0.85 }}>Simulate completed txn success callback</span>
+                  </button>
+                </form>
 
-          <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem', display: 'flex', justifyContent: 'center' }}>
+                <form action={furl} method="POST">
+                  <input type="hidden" name="key" value={key} />
+                  <input type="hidden" name="txnid" value={txnid} />
+                  <input type="hidden" name="amount" value={amount} />
+                  <input type="hidden" name="productinfo" value={productinfo} />
+                  <input type="hidden" name="firstname" value={firstname} />
+                  <input type="hidden" name="email" value={email} />
+                  <input type="hidden" name="phone" value={phone || ''} />
+                  <input type="hidden" name="status" value="failure" />
+                  <input type="hidden" name="hash" value={hash} />
+                  
+                  <button 
+                    type="submit" 
+                    className="btn btn-secondary" 
+                    style={{ width: '100%', display: 'flex', flexDirection: 'column', padding: '0.75rem', height: 'auto', gap: '0.15rem', backgroundColor: 'var(--danger-bg)', color: 'var(--danger)', borderColor: 'rgba(0,0,0,0.1)' }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: 600, fontSize: '0.85rem' }}>
+                      <Coins size={14} /> Simulate Failure
+                    </div>
+                    <span style={{ fontSize: '0.65rem', opacity: 0.85 }}>Simulate failure / cancelled callback</span>
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
+
+          <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1.25rem', marginTop: '1.5rem', display: 'flex', justifyContent: 'center' }}>
             <button 
               className="btn btn-secondary" 
               onClick={() => setPage('cart')}
-              style={{ fontSize: '0.85rem' }}
+              style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '4px' }}
             >
               <ArrowLeft size={14} /> Back to Cart
             </button>
