@@ -941,7 +941,7 @@ export default function StudentPortal({ activeInstituteId, setActiveInstituteId,
                           <strong style={{ color: 'var(--secondary)' }}>💡 Self Declaration Template Required:</strong>
                           <span style={{ color: 'var(--text-muted)' }}>Please download, print, fill, sign, and upload the Student Self Declaration form:</span>
                           <a 
-                            href="/templates/self_declaration_duplicate_marksheet.pdf" 
+                            href="/templates/self_declaration_duplicate_marksheet_or_diploma_certificate.docx" 
                             download 
                             className="btn btn-secondary" 
                             style={{ alignSelf: 'flex-start', padding: '0.35rem 0.6rem', fontSize: '0.75rem', marginTop: '0.25rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
