@@ -100,6 +100,43 @@ export default function StudentPortal({ activeInstituteId, setActiveInstituteId,
     setFeeBreakdown(breakdown);
   }, [formValues, selectedService]);
 
+  // 4. Update copies/quantity default value based on selected programme (e.g. Pharmacy defaults to 2)
+  useEffect(() => {
+    console.log('copies useEffect triggered. programmeId:', programmeId, 'selectedService:', selectedService?.name);
+    if (!selectedService || !programmeId) return;
+    const selectedProg = programmes.find((p) => p.id === programmeId);
+    console.log('selectedProg found:', selectedProg?.name);
+    if (!selectedProg) return;
+
+    const isPharma = selectedProg.name.toLowerCase().includes('pharm') || selectedProg.name.toLowerCase().includes('pharmacy');
+    console.log('isPharma:', isPharma);
+
+    const copiesField = selectedService.formSchema?.find(f =>
+      f.type === 'number' && (
+        f.name.toLowerCase().includes('copies') ||
+        f.name.toLowerCase().includes('quantity') ||
+        f.name.toLowerCase().includes('qty')
+      )
+    );
+    console.log('copiesField found:', copiesField?.name);
+
+    if (copiesField) {
+      const fieldName = copiesField.name;
+      const targetDefault = isPharma ? 2 : (copiesField.min || 1);
+      const currentVal = formValues[fieldName];
+      console.log('currentVal:', currentVal, 'targetDefault:', targetDefault);
+
+      if (currentVal !== targetDefault && (currentVal === undefined || currentVal === 1 || currentVal === 2)) {
+        console.log('Updating formValues with default:', targetDefault);
+        setFormValues((prev) => ({
+          ...prev,
+          [fieldName]: targetDefault,
+        }));
+      }
+    }
+  }, [programmeId, selectedService, programmes, formValues]);
+
+
   const activeInstitute = institutes.find((i) => i.id === activeInstituteId);
   const activeInstituteName = activeInstitute ? activeInstitute.name : '';
 
@@ -129,7 +166,14 @@ export default function StudentPortal({ activeInstituteId, setActiveInstituteId,
     } else {
       service.formSchema.forEach((field) => {
         if (field.type === 'number') {
-          defaults[field.name] = field.min || 1;
+          const isCopiesField = field.name.toLowerCase().includes('copies') || 
+                                field.name.toLowerCase().includes('quantity') || 
+                                field.name.toLowerCase().includes('qty');
+          if (isCopiesField && service.includedQuantity === 2) {
+            defaults[field.name] = 2;
+          } else {
+            defaults[field.name] = field.min || 1;
+          }
         } else if (field.type === 'multiselect') {
           defaults[field.name] = [];
         } else if (field.type === 'select') {
@@ -410,7 +454,7 @@ export default function StudentPortal({ activeInstituteId, setActiveInstituteId,
                       <div>
                         <h4 style={{ fontSize: '1.15rem', color: 'var(--text-main)' }}>{service.name}</h4>
                         <span className="badge badge-success" style={{ fontSize: '0.65rem', padding: '0.15rem 0.4rem', marginTop: '0.25rem' }}>
-                          GST: {service.isGstExempt ? 'Exempt (0%)' : `${service.gstRate}%`}
+                          GST: {service.isGstExempt ? 'Not Applicable - NA' : `${service.gstRate}%`}
                         </span>
                       </div>
                     </div>
@@ -1113,7 +1157,7 @@ export default function StudentPortal({ activeInstituteId, setActiveInstituteId,
                   )}
                   
                   <div className="pricing-row">
-                    <span>Tax (GST {selectedService.isGstExempt ? '0%' : `${selectedService.gstRate}%`}):</span>
+                    <span>Tax (GST {selectedService.isGstExempt ? 'Not Applicable - NA' : `${selectedService.gstRate}%`}):</span>
                     <span>Rs. {feeBreakdown.gstAmount.toFixed(2)}</span>
                   </div>
                   

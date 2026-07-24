@@ -110,6 +110,11 @@ export default function AdminDashboard({ user, onLoginSuccess }) {
   const [catFilter, setCatFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
 
+  // Registrar service catalog filters
+  const [srvSearchText, setSrvSearchText] = useState('');
+  const [srvInstFilter, setSrvInstFilter] = useState('all');
+  const [srvGstFilter, setSrvGstFilter] = useState('all');
+
   // Reset secondary filters on status change
   useEffect(() => {
     setInstFilter('all');
@@ -154,13 +159,33 @@ export default function AdminDashboard({ user, onLoginSuccess }) {
     return true;
   });
 
+  // Compute filtered services list client-side
+  const filteredServices = services.filter((srv) => {
+    // 1. Institute Filter (Superadmin only)
+    if (user && user.role === 'SUPERADMIN' && srvInstFilter !== 'all') {
+      if (srv.instituteId !== srvInstFilter) return false;
+    }
+    // 2. GST Filter
+    if (srvGstFilter !== 'all') {
+      if (srvGstFilter === 'exempt' && !srv.isGstExempt) return false;
+      if (srvGstFilter === 'taxable' && srv.isGstExempt) return false;
+    }
+    // 3. Search Filter
+    if (srvSearchText.trim() !== '') {
+      const query = srvSearchText.toLowerCase();
+      const matchName = srv.name.toLowerCase().includes(query);
+      const matchInstName = srv.institute.name.toLowerCase().includes(query) || srv.institute.code.toLowerCase().includes(query);
+      if (!matchName && !matchInstName) return false;
+    }
+    return true;
+  });
+
   // 2. Form states for creating/editing master records
   // Institute Form
   const [showInstForm, setShowInstForm] = useState(false);
   const [editingInstId, setEditingInstId] = useState(null);
   const [instName, setInstName] = useState('');
   const [instCode, setInstCode] = useState('');
-  const [instGstin, setInstGstin] = useState('');
   const [instPayuKey, setInstPayuKey] = useState('');
   const [instPayuSalt, setInstPayuSalt] = useState('');
   const [instStatus, setInstStatus] = useState('ACTIVE');
@@ -533,7 +558,6 @@ export default function AdminDashboard({ user, onLoginSuccess }) {
     const payload = {
       name: instName,
       code: instCode,
-      gstin: instGstin,
       payuMerchantKey: instPayuKey,
       payuSalt: instPayuSalt,
       status: instStatus,
@@ -566,7 +590,6 @@ export default function AdminDashboard({ user, onLoginSuccess }) {
     setEditingInstId(inst.id);
     setInstName(inst.name);
     setInstCode(inst.code);
-    setInstGstin(inst.gstin || '');
     setInstPayuKey(inst.payuMerchantKey || '');
     setInstPayuSalt(inst.payuSalt || '');
     setInstStatus(inst.status);
@@ -579,6 +602,7 @@ export default function AdminDashboard({ user, onLoginSuccess }) {
     setSmtpCc(smtp.ccEmail || '');
     
     setShowInstForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const resetInstForm = () => {
@@ -586,7 +610,6 @@ export default function AdminDashboard({ user, onLoginSuccess }) {
     setEditingInstId(null);
     setInstName('');
     setInstCode('');
-    setInstGstin('');
     setInstPayuKey('');
     setInstPayuSalt('');
     setInstStatus('ACTIVE');
@@ -632,6 +655,7 @@ export default function AdminDashboard({ user, onLoginSuccess }) {
     setProgCategory(prog.category);
     setProgDuration(prog.duration);
     setShowProgForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDeleteProgramme = async (id, name) => {
@@ -758,6 +782,7 @@ export default function AdminDashboard({ user, onLoginSuccess }) {
     
     setSrvFields(builderFields);
     setShowServiceForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDeleteService = async (id, name) => {
@@ -830,6 +855,7 @@ export default function AdminDashboard({ user, onLoginSuccess }) {
     setUsrRole(u.role);
     setUsrInstId(u.instituteId || '');
     setShowUserForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const resetUserForm = () => {
@@ -1359,6 +1385,7 @@ export default function AdminDashboard({ user, onLoginSuccess }) {
                         <div><strong>Phone:</strong></div><div>{selectedApp.studentPhone}</div>
                         <div><strong>Roll No:</strong></div><div>{selectedApp.studentRollNo}</div>
                         <div><strong>Programme:</strong></div><div>{selectedApp.programme.name} ({selectedApp.programme.category})</div>
+                        <div><strong>Transaction ID:</strong></div><div style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: 'var(--secondary)' }}>{selectedApp.payuTxnId}</div>
                       </div>
                     </div>
 
@@ -1490,17 +1517,13 @@ export default function AdminDashboard({ user, onLoginSuccess }) {
               <h4 style={{ marginBottom: '1rem' }}>{editingInstId ? 'Edit Institute' : 'Add New MET Institute'}</h4>
               
               <div className="grid-2">
-                <div className="form-group">
+                <div className="form-group" style={{ gridColumn: 'span 2' }}>
                   <label className="form-label">Institute Name *</label>
                   <input type="text" className="form-input" required placeholder="MET Institute of Management" disabled={!isSuperadmin} value={instName} onChange={e => setInstName(e.target.value)} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Institute Code (Unique abbreviation) *</label>
                   <input type="text" className="form-input" required placeholder="MIM" disabled={editingInstId !== null} value={instCode} onChange={e => setInstCode(e.target.value)} />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">GSTIN (Registration No)</label>
-                  <input type="text" className="form-input" placeholder="27AAAAA1111A1Z1" value={instGstin} onChange={e => setInstGstin(e.target.value)} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Status</label>
@@ -1535,7 +1558,7 @@ export default function AdminDashboard({ user, onLoginSuccess }) {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Admin CC Email</label>
-                  <input type="email" className="form-input" placeholder="mimadmin@met.edu" value={smtpCc} onChange={e => setSmtpCc(e.target.value)} />
+                  <input type="text" className="form-input" placeholder="mimadmin@met.edu" value={smtpCc} onChange={e => setSmtpCc(e.target.value)} />
                 </div>
               </div>
               <div className="grid-2">
@@ -1566,7 +1589,6 @@ export default function AdminDashboard({ user, onLoginSuccess }) {
                   <tr>
                     <th>Code</th>
                     <th>College/Institute Name</th>
-                    <th>GSTIN</th>
                     <th>PayU Setup</th>
                     <th>Status</th>
                     <th>Actions</th>
@@ -1577,7 +1599,6 @@ export default function AdminDashboard({ user, onLoginSuccess }) {
                     <tr key={inst.id}>
                       <td style={{ fontWeight: 700, color: 'var(--secondary)' }}>{inst.code}</td>
                       <td>{inst.name}</td>
-                      <td>{inst.gstin || 'N/A'}</td>
                       <td>
                         {inst.payuMerchantKey ? (
                           <span className="badge badge-success" style={{ fontSize: '0.65rem' }}>Configured</span>
@@ -1873,6 +1894,65 @@ export default function AdminDashboard({ user, onLoginSuccess }) {
             </form>
           )}
 
+          {/* SERVICES FILTER BAR */}
+          <div style={{ 
+            display: 'flex', 
+            gap: '0.75rem', 
+            flexWrap: 'wrap', 
+            backgroundColor: 'var(--bg-card)', 
+            border: '1px solid var(--border)', 
+            borderRadius: 'var(--radius)', 
+            padding: '0.75rem 1rem', 
+            marginBottom: '1.25rem',
+            alignItems: 'center'
+          }}>
+            {/* 1. Search Box */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: '1 1 200px' }}>
+              <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)' }}>Search Services:</span>
+              <input 
+                type="text" 
+                className="form-input" 
+                placeholder="Search by name or college..." 
+                value={srvSearchText} 
+                onChange={(e) => setSrvSearchText(e.target.value)} 
+                style={{ height: '32px', padding: '0.25rem 0.5rem', fontSize: '0.8rem' }}
+              />
+            </div>
+
+            {/* 2. Institute Filter (Superadmin only) */}
+            {isSuperadmin && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: '1 1 150px' }}>
+                <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)' }}>MET College:</span>
+                <select 
+                  className="form-input" 
+                  value={srvInstFilter} 
+                  onChange={(e) => setSrvInstFilter(e.target.value)}
+                  style={{ height: '32px', padding: '0.25rem 0.5rem', fontSize: '0.8rem' }}
+                >
+                  <option value="all">All Colleges</option>
+                  {institutes.map(inst => (
+                    <option key={inst.id} value={inst.id}>{inst.name} ({inst.code})</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* 3. GST status Filter */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: '1 1 150px' }}>
+              <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)' }}>GST Status:</span>
+              <select 
+                className="form-input" 
+                value={srvGstFilter} 
+                onChange={(e) => setSrvGstFilter(e.target.value)}
+                style={{ height: '32px', padding: '0.25rem 0.5rem', fontSize: '0.8rem' }}
+              >
+                <option value="all">All (Exempt &amp; Taxable)</option>
+                <option value="exempt">GST Exempt (Not Applicable)</option>
+                <option value="taxable">Taxable (18% GST)</option>
+              </select>
+            </div>
+          </div>
+
           {loadingMaster ? (
             <div style={{ textAlign: 'center', padding: '2rem' }}><Loader2 className="spinner spinner-dark" /></div>
           ) : (
@@ -1890,7 +1970,7 @@ export default function AdminDashboard({ user, onLoginSuccess }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {services.map((srv) => (
+                  {filteredServices.map((srv) => (
                     <tr key={srv.id}>
                       <td><strong>{srv.institute.name}</strong></td>
                       <td>{srv.name}</td>
@@ -1898,7 +1978,7 @@ export default function AdminDashboard({ user, onLoginSuccess }) {
                       <td>₹{Number(srv.basePrice).toFixed(0)}</td>
                       <td>
                         {srv.isGstExempt ? (
-                          <span className="badge badge-pending" style={{ fontSize: '0.65rem' }}>Exempt</span>
+                          <span className="badge badge-pending" style={{ fontSize: '0.65rem' }}>Not Applicable - NA</span>
                         ) : (
                           <span className="badge badge-success" style={{ fontSize: '0.65rem' }}>{Number(srv.gstRate)}% GST</span>
                         )}

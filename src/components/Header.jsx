@@ -5,7 +5,11 @@ export default function Header({ page, setPage, cartCount, user, onLogout }) {
   return (
     <header className="portal-header">
       <div className="brand-section" onClick={() => setPage('portal')} style={{ cursor: 'pointer' }}>
-        <div className="brand-logo-mock">MET</div>
+        <img 
+          src="/met_logo.png" 
+          alt="MET Bhujbal Knowledge City" 
+          style={{ height: '48px', width: 'auto', objectFit: 'contain', marginRight: '10px' }} 
+        />
         <div className="brand-info">
           <h1>MET Registrar Services</h1>
           <p>Verification & Academic Portal</p>
