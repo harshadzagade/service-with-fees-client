@@ -52,14 +52,42 @@ export default function App() {
     // Load admin token session if saved
     const savedUser = localStorage.getItem('adminUser');
     const savedToken = localStorage.getItem('token');
+    const loginTime = localStorage.getItem('loginTime');
+    const sessionDuration = 8 * 60 * 60 * 1000; // 8 hours in ms
+
     if (savedUser && savedToken) {
-      try {
-        setAdminUser(JSON.parse(savedUser));
-      } catch (e) {
+      if (loginTime && (Date.now() - Number(loginTime) > sessionDuration)) {
+        // Session expired
         localStorage.removeItem('adminUser');
+        localStorage.removeItem('token');
+        localStorage.removeItem('loginTime');
+      } else {
+        try {
+          setAdminUser(JSON.parse(savedUser));
+        } catch (e) {
+          localStorage.removeItem('adminUser');
+        }
       }
     }
   }, []);
+
+  // Background interval check to auto-logout if tab stays open for 8 hours
+  useEffect(() => {
+    if (!adminUser) return;
+    
+    const checkSessionExpiry = () => {
+      const loginTime = localStorage.getItem('loginTime');
+      const sessionDuration = 8 * 60 * 60 * 1000;
+      if (loginTime && (Date.now() - Number(loginTime) > sessionDuration)) {
+        handleAdminLogout();
+        alert('Your session has expired (8 hours limit). Please log in again.');
+      }
+    };
+
+    // Check once every minute
+    const interval = setInterval(checkSessionExpiry, 60000);
+    return () => clearInterval(interval);
+  }, [adminUser]);
 
   const handleAddToCart = (item) => {
     setCart((prev) => [...prev, item]);
@@ -78,12 +106,14 @@ export default function App() {
   const handleAdminLogin = (user) => {
     setAdminUser(user);
     localStorage.setItem('adminUser', JSON.stringify(user));
+    localStorage.setItem('loginTime', Date.now().toString());
   };
 
   const handleAdminLogout = () => {
     setAdminUser(null);
     localStorage.removeItem('adminUser');
     localStorage.removeItem('token');
+    localStorage.removeItem('loginTime');
     navigateTo('portal');
   };
 
